@@ -5,7 +5,11 @@ export default async function handler(
   response: NextApiResponse
 ) {
   if (request.method === "POST") {
-    const { year, page, genre } = request.body;
+    let body = request.body;
+    if (typeof body === "string") {
+      body = JSON.parse(body);
+    }
+    const { year, page, genre } = body;
     const date = new Date();
     const resp = await fetch(
       `https://moviesdatabase.p.rapidapi.com/titles?year=${
@@ -18,7 +22,11 @@ export default async function handler(
         },
       }
     );
-    if (!resp.ok) throw new Error("Failed to fetch movies");
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error("External API error:", errorText);
+      throw new Error("Failed to fetch movies: " + errorText);
+    }
     const moviesResponse = await resp.json();
     const movies: MoviesProps[] = moviesResponse.results;
     return response.status(200).json({
